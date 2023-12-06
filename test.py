@@ -6,6 +6,7 @@ from utils.ui.func import *
 from XJ_AbstractCropper import *
 
 import sys
+import numpy as np
 
 
 class Test(QWidget):
@@ -18,14 +19,14 @@ class Test(QWidget):
         self.img_frame = [0, 0, 200, 200]
         # 图像持有点
         self.img_hold_point = [0, 0]
+        self.img_click_flag = True
 
         # 框选区域框架
         self.crop_frame = [0, 0, 0, 0]
         # 框架持有点
         self.crop_hold_point = [0, 0]
-        self.draw_crop_flag = False
-        self.drawing_crop_flag = False
-        self.exits_crop_flag = False
+        self.crop_exits_flag = False    # crop 区域存在标志
+        self.crop_click_flag = False    # crop 区域点击标志
 
         self.__fg = QImage('./dataset/Kaggle/archive/69_2.jpg')
         self.update()
@@ -43,8 +44,17 @@ class Test(QWidget):
         painter.drawImage(q_rect, self.__fg)
 
         # 画线
-        if self.draw_crop_flag:
-            print(self.crop_frame)
+        if np.array(self.crop_frame).any():
+            # 如果存在 crop 区域，将坐标转换成左上角和右下角
+            if self.crop_exits_flag:
+                self.crop_frame = any2ltwh(self.crop_frame)
+                self.crop_frame = [
+                    max(self.crop_frame[0], self.img_frame[0]),
+                    max(self.crop_frame[1], self.img_frame[1]),
+                    min(self.crop_frame[2], self.img_frame[0] + self.img_frame[2]),
+                    min(self.crop_frame[3], self.img_frame[1] + self.img_frame[3])
+                ]
+
             painter.setPen(QPen(QColor(255, 0, 0), 2))
             painter.drawLine(self.crop_frame[0], self.crop_frame[1], self.crop_frame[0], self.crop_frame[3])
             painter.drawLine(self.crop_frame[0], self.crop_frame[1], self.crop_frame[2], self.crop_frame[1])
@@ -58,23 +68,36 @@ class Test(QWidget):
 
         # 中键按下
         if a0.button() == Qt.MidButton:
-            print('中键按下')
             # 判断点是否在图像框中
             if is_in_frame(x, y, self.img_frame[0], self.img_frame[1], self.img_frame[2], self.img_frame[3]):
+                # 点击正确位置，图像可以移动
+                self.img_click_flag = True
+                # 更新图像持有点
                 self.img_hold_point[0] = x
                 self.img_hold_point[1] = y
 
         # 左键按下
         if a0.button() == Qt.LeftButton:
-            print('左键按下')
             # 判断点是否在图像框中
             if is_in_frame(x, y, self.img_frame[0], self.img_frame[1], self.img_frame[2], self.img_frame[3]):
                 # 判断有无 crop 区域存在
-                if not self.exits_crop_flag:
-                    self.draw_crop_flag = True
-                    self.drawing_crop_flag = True
+                # 无 cope 区域存在，本次目标在于创建 crop 区域
+                if not self.crop_exits_flag:
+                    self.crop_click_flag = True
 
                     self.crop_frame = [x, y, x + 1, y + 1]
+
+                else:
+                    # 有 crop 区域，判断点是否在 crop 框中
+                    # 如果在 crop 区域中，则目标是为了移动 crop 区域
+                    if is_in_frame(x, y,
+                                   min(self.crop_frame[0], self.crop_frame[2]),
+                                   min(self.crop_frame[1], self.crop_frame[3]),
+                                   abs(self.crop_frame[2] - self.crop_frame[0]),
+                                   abs(self.crop_frame[3] - self.crop_frame[1])):
+                        self.crop_click_flag = True
+                        self.crop_hold_point[0] = x
+                        self.crop_hold_point[1] = y
 
     """ 鼠标移动事件 """
     def mouseMoveEvent(self, a0):
@@ -82,13 +105,13 @@ class Test(QWidget):
         y = a0.pos().y()
 
         # 中键按下移动
-        if a0.buttons() & Qt.MidButton:
+        if a0.buttons() & Qt.MidButton and self.img_click_flag:
             # 更新图像框的左上角坐标
             self.img_frame[0] += x - self.img_hold_point[0]
             self.img_frame[1] += y - self.img_hold_point[1]
 
             # 更新剪切框坐标
-            if self.exits_crop_flag:
+            if self.crop_exits_flag:
                 self.crop_frame[0] += x - self.img_hold_point[0]
                 self.crop_frame[1] += y - self.img_hold_point[1]
                 self.crop_frame[2] += x - self.img_hold_point[0]
@@ -100,32 +123,39 @@ class Test(QWidget):
 
         # 左键按下移动
         if a0.buttons() & Qt.LeftButton:
-            if not self.exits_crop_flag and self.draw_crop_flag:
+            # 不存在裁剪框，但是点击了正确的位置，目标在于创建裁剪框
+            if not self.crop_exits_flag and self.crop_click_flag:
 
                 # 点不在图像框中
-                if x < self.img_frame[0]:
-                    self.crop_frame[2] = self.img_frame[0]
-                elif x > self.img_frame[0] + self.img_frame[2]:
-                    self.crop_frame[2] = self.img_frame[0] + self.img_frame[2]
-                else:
-                    self.crop_frame[2] = x
+                self.crop_frame[2] = limit_num_in_range(x, self.img_frame[0], self.img_frame[0] + self.img_frame[2])
+                self.crop_frame[3] = limit_num_in_range(y, self.img_frame[1], self.img_frame[1] + self.img_frame[3])
 
-                if y < self.img_frame[1]:
-                    self.crop_frame[3] = self.img_frame[1]
-                elif y > self.img_frame[1] + self.img_frame[3]:
-                    self.crop_frame[3] = self.img_frame[1] + self.img_frame[3]
-                else:
-                    self.crop_frame[3] = y
+            # 存在裁剪框, 目标在于移动裁剪框
+            elif self.crop_exits_flag and self.crop_click_flag:
+                # 更新裁剪框坐标
+                self.crop_frame[0] += x - self.crop_hold_point[0]
+                self.crop_frame[1] += y - self.crop_hold_point[1]
+                self.crop_frame[2] += x - self.crop_hold_point[0]
+                self.crop_frame[3] += y - self.crop_hold_point[1]
+
+                # 更新裁剪框持有点
+                self.crop_hold_point[0] = x
+                self.crop_hold_point[1] = y
 
         self.update()
         a0.accept()
 
     """ 鼠标升起事件 """
     def mouseReleaseEvent(self, a0):
-        # 左键升起，move 不再响应左键
-        if a0.button() == Qt.LeftButton and self.drawing_crop_flag:
-            self.exits_crop_flag = True
-            self.drawing_crop_flag = False
+        # 左键升起，不管目标如何，只要点击了正确位置，则会存在 crop 区域
+        if a0.button() == Qt.LeftButton and self.crop_click_flag:
+            self.crop_exits_flag = True
+            self.crop_click_flag = False
+
+        # 中键升起，move 不再响应中键
+        if a0.button() == Qt.MidButton:
+            self.img_click_flag = False
+
         self.update()
         a0.accept()
 
@@ -135,8 +165,7 @@ class Test(QWidget):
         if a0.button() == Qt.RightButton:
             # 还原 crop 坐标
             self.crop_frame = [0, 0, 0, 0]
-            self.draw_crop_flag = False
-            self.exits_crop_flag = False
+            self.crop_exits_flag = False
 
     """ 滚轮滚动事件 """
     def wheelEvent(self, a0):
@@ -158,12 +187,11 @@ class Test(QWidget):
             self.img_frame[3] = int(self.img_frame[3] * scale)
 
             # 更新剪切框坐标
-            if self.exits_crop_flag:
+            if self.crop_exits_flag:
                 self.crop_frame[0] = int(x - (x - self.crop_frame[0]) * scale)
                 self.crop_frame[1] = int(y - (y - self.crop_frame[1]) * scale)
                 self.crop_frame[2] = int(x - (x - self.crop_frame[2]) * scale)
                 self.crop_frame[3] = int(y - (y - self.crop_frame[3]) * scale)
-
 
         self.update()
         a0.accept()
