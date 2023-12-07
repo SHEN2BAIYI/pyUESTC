@@ -25,8 +25,9 @@ class Test(QWidget):
         self.crop_frame = [0, 0, 0, 0]
         # 框架持有点
         self.crop_hold_point = [0, 0]
-        self.crop_exits_flag = False    # crop 区域存在标志
-        self.crop_click_flag = False    # crop 区域点击标志
+        self.crop_exits_flag = False                          # crop 区域存在标志
+        self.crop_click_flag = False                          # crop 区域点击标志
+        self.crop_change_flag = [False, False, False, False]  # crop 区域改变标志
 
         self.__fg = QImage('./dataset/Kaggle/archive/69_2.jpg')
         self.update()
@@ -48,12 +49,12 @@ class Test(QWidget):
             # 如果存在 crop 区域，将坐标转换成左上角和右下角
             if self.crop_exits_flag:
                 self.crop_frame = any2ltwh(self.crop_frame)
-                self.crop_frame = [
-                    max(self.crop_frame[0], self.img_frame[0]),
-                    max(self.crop_frame[1], self.img_frame[1]),
-                    min(self.crop_frame[2], self.img_frame[0] + self.img_frame[2]),
-                    min(self.crop_frame[3], self.img_frame[1] + self.img_frame[3])
-                ]
+
+            # 限制在图像框内
+            self.crop_frame[0] = limit_num_in_range(self.crop_frame[0], self.img_frame[0], self.img_frame[0] + self.img_frame[2])
+            self.crop_frame[1] = limit_num_in_range(self.crop_frame[1], self.img_frame[1], self.img_frame[1] + self.img_frame[3])
+            self.crop_frame[2] = limit_num_in_range(self.crop_frame[2], self.img_frame[0], self.img_frame[0] + self.img_frame[2])
+            self.crop_frame[3] = limit_num_in_range(self.crop_frame[3], self.img_frame[1], self.img_frame[1] + self.img_frame[3])
 
             painter.setPen(QPen(QColor(255, 0, 0), 2))
             painter.drawLine(self.crop_frame[0], self.crop_frame[1], self.crop_frame[0], self.crop_frame[3])
@@ -89,15 +90,23 @@ class Test(QWidget):
 
                 else:
                     # 有 crop 区域，判断点是否在 crop 框中
-                    # 如果在 crop 区域中，则目标是为了移动 crop 区域
+                    # 在 crop 框中，本次目标在于移动 crop 框或改变 crop 框大小
                     if is_in_frame(x, y,
                                    min(self.crop_frame[0], self.crop_frame[2]),
                                    min(self.crop_frame[1], self.crop_frame[3]),
                                    abs(self.crop_frame[2] - self.crop_frame[0]),
                                    abs(self.crop_frame[3] - self.crop_frame[1])):
                         self.crop_click_flag = True
+
+                        # 提取 crop 点击点
                         self.crop_hold_point[0] = x
                         self.crop_hold_point[1] = y
+
+                        # 判断点击点在 crop 框的哪个位置
+                        self.crop_change_flag = point_in_frame(x, y,
+                                                               self.crop_frame[0], self.crop_frame[1],
+                                                               self.crop_frame[2] - self.crop_frame[0],
+                                                               self.crop_frame[3] - self.crop_frame[1])
 
     """ 鼠标移动事件 """
     def mouseMoveEvent(self, a0):
@@ -130,17 +139,62 @@ class Test(QWidget):
                 self.crop_frame[2] = limit_num_in_range(x, self.img_frame[0], self.img_frame[0] + self.img_frame[2])
                 self.crop_frame[3] = limit_num_in_range(y, self.img_frame[1], self.img_frame[1] + self.img_frame[3])
 
-            # 存在裁剪框, 目标在于移动裁剪框
+            # 存在裁剪框, 目标在于移动裁剪框或改变裁剪框大小
             elif self.crop_exits_flag and self.crop_click_flag:
                 # 更新裁剪框坐标
-                self.crop_frame[0] += x - self.crop_hold_point[0]
-                self.crop_frame[1] += y - self.crop_hold_point[1]
-                self.crop_frame[2] += x - self.crop_hold_point[0]
-                self.crop_frame[3] += y - self.crop_hold_point[1]
+                for index, flag in enumerate(self.crop_change_flag):
+                    if flag and index % 2 == 0:
+                        self.crop_frame[index] += x - self.crop_hold_point[0]
+                    if flag and index % 2 == 1:
+                        self.crop_frame[index] += y - self.crop_hold_point[1]
 
                 # 更新裁剪框持有点
                 self.crop_hold_point[0] = x
                 self.crop_hold_point[1] = y
+
+        # 平常移动，设置鼠标样式
+        if self.crop_exits_flag:
+            if is_in_frame(x, y,
+                           self.crop_frame[0], self.crop_frame[1],
+                           self.crop_frame[2] - self.crop_frame[0],
+                           self.crop_frame[3] - self.crop_frame[1]):
+
+                flags = point_in_frame(x, y,
+                                       self.crop_frame[0], self.crop_frame[1],
+                                       self.crop_frame[2] - self.crop_frame[0],
+                                       self.crop_frame[3] - self.crop_frame[1])
+
+                # 设置中间鼠标样式
+                if flags[0] and flags[1] and flags[2] and flags[3]:
+                    self.setCursor(Qt.SizeAllCursor)
+                # 设置左上角鼠标样式
+                elif flags[0] and flags[1]:
+                    self.setCursor(Qt.SizeFDiagCursor)
+                # 设置右上角鼠标样式
+                elif flags[2] and flags[1]:
+                    self.setCursor(Qt.SizeBDiagCursor)
+                # 设置左下角鼠标样式
+                elif flags[0] and flags[3]:
+                    self.setCursor(Qt.SizeBDiagCursor)
+                # 设置右下角鼠标样式
+                elif flags[2] and flags[3]:
+                    self.setCursor(Qt.SizeFDiagCursor)
+                # 设置上边鼠标样式
+                elif flags[1]:
+                    self.setCursor(Qt.SizeVerCursor)
+                # 设置下边鼠标样式
+                elif flags[3]:
+                    self.setCursor(Qt.SizeVerCursor)
+                # 设置左边鼠标样式
+                elif flags[0]:
+                    self.setCursor(Qt.SizeHorCursor)
+                # 设置右边鼠标样式
+                elif flags[2]:
+                    self.setCursor(Qt.SizeHorCursor)
+            else:
+                self.setCursor(Qt.ArrowCursor)
+        else:
+            self.setCursor(Qt.ArrowCursor)
 
         self.update()
         a0.accept()
@@ -151,6 +205,7 @@ class Test(QWidget):
         if a0.button() == Qt.LeftButton and self.crop_click_flag:
             self.crop_exits_flag = True
             self.crop_click_flag = False
+            self.crop_change_flag = [False, False, False, False]
 
         # 中键升起，move 不再响应中键
         if a0.button() == Qt.MidButton:

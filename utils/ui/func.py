@@ -39,3 +39,35 @@ def any2ltwh(coords):
     assert len(coords) == 4
     return [min(coords[0], coords[2]), min(coords[1], coords[3]),
             max(coords[0], coords[2]), max(coords[1], coords[3])]
+
+
+""" 点在框中的位置 """
+def point_in_frame(point_x, point_y, frame_x, frame_y, frame_width, frame_height, padding=10):
+    # 先对四角进行判定
+    # 左上
+    if is_in_frame(point_x, point_y, frame_x - padding, frame_y - padding, padding * 2, padding * 2):
+        return [True, True, False, False]
+    # 右上
+    elif is_in_frame(point_x, point_y, frame_x + frame_width - padding, frame_y - padding, padding * 2, padding * 2):
+        return [False, True, True, False]
+    # 左下
+    elif is_in_frame(point_x, point_y, frame_x - padding, frame_y + frame_height - padding, padding * 2, padding * 2):
+        return [True, False, False, True]
+    # 右下
+    elif is_in_frame(point_x, point_y, frame_x + frame_width - padding, frame_y + frame_height - padding, padding * 2, padding * 2):
+        return [False, False, True, True]
+    # 再对四边进行判定
+    # 上
+    elif is_in_frame(point_x, point_y, frame_x, frame_y - padding, frame_width, padding * 2):
+        return [False, True, False, False]
+    # 下
+    elif is_in_frame(point_x, point_y, frame_x, frame_y + frame_height - padding, frame_width, padding * 2):
+        return [False, False, False, True]
+    # 左
+    elif is_in_frame(point_x, point_y, frame_x - padding, frame_y, padding * 2, frame_height):
+        return [True, False, False, False]
+    # 右
+    elif is_in_frame(point_x, point_y, frame_x + frame_width - padding, frame_y, padding * 2, frame_height):
+        return [False, False, True, False]
+
+    return [True, True, True, True]
