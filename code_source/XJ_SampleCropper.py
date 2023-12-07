@@ -276,7 +276,7 @@ if __name__ == '__main__':
     cp = XJ_SampleCropper()
     cp.resize(700, 700)
     cp.show()
-    cp.SetImg(QImage('./dataset/Kaggle/archive/69_2.jpg'))
+    cp.SetImg(QImage('../dataset/Kaggle/archive/69_2.jpg'))
     # cp.valueChange.connect(lambda: print(cp.Get_CropArea()))
 
     sys.exit(app.exec())

@@ -22,7 +22,7 @@ def check_data(xml_path, img_path):
                 if son.tag == 'image':
                     img_index = int(son.text)
                 # 获取标注点
-                if son.tag == 'svg':
+                if son.tag == 'svg':  
                     try:
                         values = json.loads(son.text)
                         for value in values:

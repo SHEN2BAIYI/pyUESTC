@@ -1,132 +1,152 @@
-# 【main.py】
-import sys
-import os
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import Qt, QRect
-from PyQt5.QtGui import QPainter, QPen, QColor, QImage, QFont
 from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
+
+from ui.Cropper import Ui_MainWindow
+from img_control import ImageControl
+
+import os
+import sys
 import cv2
 
-from XJ_Cropper import *
-from XJ_TreeView import *
-from XJ_LineEdit import *
+class Cropper(QMainWindow, Ui_MainWindow):
+    def __init__(self):
+        super(Cropper, self).__init__()
+        self.setupUi(self)
 
+        # 声明变量
+        self.cwd = os.getcwd()
+        self.store_list = []
 
-class XJ_Main(QMainWindow):
-    def __init__(self, parent=None):
-        super(XJ_Main, self).__init__(parent)
+        # 声明页面部件
+        self.img_frame = ImageControl()
 
-        self.__canvas = XJ_Cropper()
-        self.__files = XJ_TreeView()
-        self.__path = XJ_LineEdit(self, '当前路径：', os.getcwd().replace('\\', '/') + '/', '选择目录')  # 路径名的反斜杠全改为斜杠
-        self.__path.SetEnable_Input(False)
-        self.__filesType = ['.png', '.jpg', '.bmp']  # 文件类型
+        # 初始化
+        self.__init_bind_event()
+        self.__init_img_frame()
+        self.__init_save_view()
 
-        # 设置布局
+    ########################
+    #       初始化函数       #
+    ########################
+    """ 初始化主页面绑定事件 """
+    def __init_bind_event(self):
+        # 绑定文件夹选择事件
+        self.targetLineEdit.mouseDoubleClickEvent = self.__choose_file
+        # 绑定文件选择事件
+        self.imgListView.doubleClicked.connect(self.__select_img_and_transfer)
+
+        # 绑定微调按钮事件
+        self.topUpButton.clicked.connect(lambda: self.__adjust_crop(1, -1))
+        self.topDownButton.clicked.connect(lambda: self.__adjust_crop(1, 1))
+        self.leftUpButton.clicked.connect(lambda: self.__adjust_crop(0, -1))
+        self.leftDownButton.clicked.connect(lambda: self.__adjust_crop(0, 1))
+        self.rightUpButton.clicked.connect(lambda: self.__adjust_crop(2, -1))
+        self.rightDownButton.clicked.connect(lambda: self.__adjust_crop(2, 1))
+        self.bottomUpButton.clicked.connect(lambda: self.__adjust_crop(3, -1))
+        self.bottomDownButton.clicked.connect(lambda: self.__adjust_crop(3, 1))
+
+        # 绑定保存按钮事件
+        self.storeButton.clicked.connect(self.__save_crop)
+
+    """ 初始化主页面图像操作区域 """
+    def __init_img_frame(self):
+        # 初始化图像编辑界面
         vbox = QVBoxLayout()
-        vbox.addWidget(self.__path)
-        vbox.addWidget(self.__files)
-        vbox.setStretchFactor(self.__files, 1)
-        widget = QWidget()
-        widget.setLayout(vbox)
-        spt = QSplitter(Qt.Horizontal)
-        spt.addWidget(widget)
-        spt.addWidget(self.__canvas)
-        self.setCentralWidget(spt)
+        vbox.addWidget(self.img_frame)
+        self.imgFrame.setLayout(vbox)
 
-        # 绑定响应函数
-        self.__path.SetClicked_Button(self.__ClickPath)
-        self.__files.doubleClicked.connect(self.__DoubleClickFiles)
-        self.__canvas.btnClick_saveCrops.connect(self.__SaveCrops)
+    """ 初始化保存列表 """
+    def __init_save_view(self):
+        list_model = QStringListModel()
+        list_model.setStringList(self.store_list)
 
-        # 其他的初始化
-        self.__LoadDir()  # 初始化self.__files的内容
+        self.storeListView.setModel(list_model)
+        self.storeListView.setEditTriggers(QAbstractItemView.NoEditTriggers)
 
-    def __ClickPath(self):  # 选择目录
-        path = QFileDialog.getExistingDirectory(self, "选择目录").replace('\\', '/')  # 路径名的反斜杠全改为斜杠
-        if (len(path)):
-            path = path + '/'  # 加上一个斜杠
-            self.__path.SetText_Input(path)
-            self.__LoadDir()
-
-    def __LoadPict(self, path):  # 加载路径下的图片
-        cvImg = cv2.imdecode(np.fromfile(path, dtype=np.uint8), cv2.IMREAD_UNCHANGED)
-        qtImg = GetQPixmap(cvImg).toImage()
-        self.__canvas.Load_Img(qtImg)
-        self.__canvas.update()
-
-    def __DoubleClickFiles(self, abc):  # 双击文件列表，如果是文件则更新裁剪图，如果是目录则更新目录。
-        file = self.__files.GetCurrIter().GetData()[0]
-        path = os.path.join(self.__path.GetText_Input(), file).replace('\\', '/')  # 路径名的反斜杠全改为斜杠
-
-        if (os.path.isfile(path)):
-            self.__LoadPict(path)
+    ########################
+    #       功能性函数       #
+    ########################
+    """ 选择目录 """
+    def __choose_file(self, is_dir=False, *args):
+        if is_dir:
+            file_name = QFileDialog.getExistingDirectory(self, "选取文件夹", self.cwd)
         else:
-            if (file == '..'):  # 返回上一级目录
-                path = self.__path.GetText_Input()
-                path = path[:path[:-1].rfind('/') + 1]
-            if (os.path.exists(path)):  # 以防万一的
-                self.__path.SetText_Input(path)
-                self.__LoadDir()
+            file_name, _ = QFileDialog.getOpenFileName(self, "选取文件", self.cwd, 'Exe files(*.exe)')
 
-    def __LoadDir(self):  # 加载path下的文件及目录到XJ_TreeView中
-        self.__files.Clear()
-        iter = self.__files.GetHead()
+        # 选择文件并传递给 line_edit
+        if file_name:
+            self.targetLineEdit.setText(file_name)
 
-        path = self.__path.GetText_Input()
-        files = []
-        folders = []
-        for f in os.listdir(path):
-            if os.path.isdir(os.path.join(path, f)):
-                folders.append(f)
-            elif self.__filesType.count(f[-4:]) != 0:
-                files.append(f)
+            # 读取文件夹下的文件
+            files = os.listdir(file_name)
+            files = [x for x in files if x.endswith('.jpg') or x.endswith('.png')]
+            list_model = QStringListModel()
+            list_model.setStringList(files)
 
-        font = QFont()
-        font.setBold(True)
-        font.setPixelSize(18)
-        for f in files:
-            iter.AppendRow([f]).SetFont(0, font)
-        font.setBold(False)
-        font.setItalic(True)
-        font.setPixelSize(14)
-        for f in folders:
-            iter.AppendRow([f]).SetFont(0, font)
-        if (path.count('/') > 1):
-            iter.AppendRow(['..']).SetFont(0, font)  # 返回上一级目录
+            self.imgListView.setModel(list_model)
+            self.imgListView.setEditTriggers(QAbstractItemView.NoEditTriggers)
 
-    def __SaveCrops(self):  # 导出图片
-        crops = self.__canvas.Get_CropImgs()
-        if (crops):
-            path = QFileDialog.getExistingDirectory(self, "选择目录")
-            if (path):
-                file = self.__files.GetCurrIter().GetData()
-                file = '空白图片.png' if file == None else file[0]
-                file = file[:file.rfind('.')]
-                path = os.path.join(path, file).replace('\\', '/')
+    """ 选择图像文件，并进行传递 """
+    def __select_img_and_transfer(self, item):
+        # 获取文件名
+        file_name = self.imgListView.selectionModel().selectedIndexes()[0].data()
 
-                path_copy = path
-                num = 1
-                while (os.path.exists(path) and os.path.isdir(path)):
-                    path = path_copy + '_' + str(num)
-                    num = num + 1
-                os.makedirs(path)
+        # 获取文件全路径
+        file_path = os.path.join(self.targetLineEdit.text(), file_name)
 
-                for row in range(len(crops)):
-                    for col in range(len(crops[row])):
-                        file = os.path.join(path, '[{},{}].png'.format(row, col))
-                        crops[row][col].save(file)
-                QMessageBox.information(None, r'图片导出结束', '文件夹路径为：\n{}'.format(path))
-        else:
-            QMessageBox.information(None, r'失败', '截图不存在')
+        # 传递给图像编辑区域
+        self.img_frame.reset()
+        self.img_frame.set_img(file_path)
+
+    """ 微调 crop 区域 """
+    def __adjust_crop(self, target, step=1):
+        # 获取当前 crop 区域
+        crop = self.img_frame.crop_frame.copy()
+
+        # 根据 target 选择 index。上(1)下(3)左(0)右(2)
+        crop[target] += step
+
+        self.img_frame.crop_frame = crop
+        self.img_frame.update()
+
+    """ 保存裁剪图像（并进行坐标同步） """
+    def __save_crop(self):
+        if not self.img_frame.crop_exits_flag:
+            return
+
+        # 将 crop 区域转换到原图像中
+        img_frame = self.img_frame.img_frame.copy()
+        crop_frame = self.img_frame.crop_frame.copy()
+        # 加载原图像
+        img = cv2.imread(self.img_frame.img_path)
+
+        # 计算比例
+        x1 = round((crop_frame[0] - img_frame[0]) * img.shape[1] / img_frame[2])
+        y1 = round((crop_frame[1] - img_frame[1]) * img.shape[0] / img_frame[3])
+
+        x2 = round((crop_frame[2] - img_frame[0]) * img.shape[1] / img_frame[2])
+        y2 = round((crop_frame[3] - img_frame[1]) * img.shape[0] / img_frame[3])
+
+        # 保存图像
+        img = img[y1:y2, x1:x2]
+        # 拆分图像路径
+        file_path, file_name = os.path.split(self.img_frame.img_path)
+        file_path = os.path.join(file_path, self.storeLineEdit.text())
+        # 判断 file_path 文件夹是否存在
+        if not os.path.exists(file_path):
+            os.makedirs(file_path)
+
+        file_path = os.path.join(file_path, file_name)
+
+        cv2.imwrite(file_path, img)
+        # 显示保存记录
+        if file_name not in self.store_list:
+            self.store_list.append(file_name)
+            self.__init_save_view()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app = QApplication(sys.argv)
-
-    win = XJ_Main()
-    win.resize(1000, 500)
-    win.show()
-    win.setWindowTitle("XJ图片裁剪器")
-
-    sys.exit(app.exec())
+    myWin = Cropper()
+    myWin.show()
+    sys.exit(app.exec_())
