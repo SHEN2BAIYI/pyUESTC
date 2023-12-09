@@ -1,3 +1,5 @@
+import os
+
 from PyQt5.QtWidgets import QWidget, QApplication
 from PyQt5.QtGui import QImage, QPainter, QPen, QColor
 from PyQt5.QtCore import QRect, Qt
@@ -8,12 +10,13 @@ import sys
 import numpy as np
 
 
-class ImageControl(QWidget):
+class ImageCropper(QWidget):
     def __init__(self):
         super().__init__()
         self.resize(1000, 500)
         self.setMouseTracking(True)
 
+        """ 图像操作 Frame """
         # 图像展示框架
         self.img_frame = [0, 0, 0, 0]
         self.img_path = None
@@ -29,7 +32,12 @@ class ImageControl(QWidget):
         self.crop_click_flag = False                          # crop 区域点击标志
         self.crop_change_flag = [False, False, False, False]  # crop 区域改变标志
 
+        # 图像 QImage 本身
         self.__fg = None
+
+        """ 控制界面 Frame """
+        self.cwd = os.getcwd()
+        self.store_list = []
 
     def reset(self):
         # 图像展示框架

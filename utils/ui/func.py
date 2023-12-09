@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 
 from PIL import Image
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
 
 
 """ 生成马赛克背景图 """
@@ -71,3 +73,6 @@ def point_in_frame(point_x, point_y, frame_x, frame_y, frame_width, frame_height
         return [False, False, True, False]
 
     return [True, True, True, True]
+
+
+

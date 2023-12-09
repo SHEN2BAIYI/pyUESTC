@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
 from ui.Cropper import Ui_MainWindow
-from img_control import ImageControl
+from ui.img_cropper import ImageCropper
 
 import os
 import sys
@@ -18,7 +18,7 @@ class Cropper(QMainWindow, Ui_MainWindow):
         self.store_list = []
 
         # 声明页面部件
-        self.img_frame = ImageControl()
+        self.img_frame = ImageCropper()
 
         # 初始化
         self.__init_bind_event()

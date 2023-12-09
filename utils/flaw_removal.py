@@ -137,6 +137,37 @@ def download_img(url, path=None):
         image.show()
 
 
+""" 瑕疵消除 """
+def flaw_removal(img_url, mask_url, width=560, height=360):
+    # 构建请求头
+    headers = {
+        'authority': 'appsrv.passfab.com',
+        'accept': 'application/json, text/plain, */*',
+        'accept-language': 'zh-CN,zh;q=0.9',
+        'authorization': '',
+        'cache-control': 'no-cache',
+        'origin': 'https://online.niuxuezhang.cn',
+        'content-type': 'multipart/form-data; boundary=----WebKitFormBoundaryaeyrPOTEd1clFLDi',
+        'pragma': 'no-cache',
+        'referer': 'https://online.niuxuezhang.cn/',
+        'sec-ch-ua': '"Google Chrome";v="119", "Chromium";v="119", "Not?A_Brand";v="24"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'cross-site',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+    }
+
+    # 构造数据
+    data = '------WebKitFormBoundaryaeyrPOTEd1clFLDi\r\nContent-Disposition: form-data; name="image_url"\r\n\r\n{}\r\n------WebKitFormBoundaryaeyrPOTEd1clFLDi\r\nContent-Disposition: form-data; name="mask_url"\r\n\r\n{}\r\n------WebKitFormBoundaryaeyrPOTEd1clFLDi\r\nContent-Disposition: form-data; name="width"\r\n\r\n{}\r\n------WebKitFormBoundaryaeyrPOTEd1clFLDi\r\nContent-Disposition: form-data; name="height"\r\n\r\n{}\r\n------WebKitFormBoundaryaeyrPOTEd1clFLDi\r\nContent-Disposition: form-data; name="from_site"\r\n\r\npc\r\n------WebKitFormBoundaryaeyrPOTEd1clFLDi--\r\n'.format(
+        img_url, mask_url, width, height
+    )
+    # 发送请求
+    response = requests.post('https://appsrv.passfab.com/app/v2/photo/remove-watermark', headers=headers, data=data)
+    return response
+
+
 if __name__ == '__main__':
     img_url = upload_img('../dataset/Kaggle/archive/1_1.jpg')
     time.sleep(2)

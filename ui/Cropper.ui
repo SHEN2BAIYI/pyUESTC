@@ -84,7 +84,7 @@
      </property>
     </widget>
    </widget>
-   <widget class="QWidget" name="widget_2" native="true">
+   <widget class="QTabWidget" name="tabWidget">
     <property name="geometry">
      <rect>
       <x>280</x>
@@ -93,22 +93,20 @@
       <height>801</height>
      </rect>
     </property>
-    <widget class="QWidget" name="widget_3" native="true">
-     <property name="geometry">
-      <rect>
-       <x>0</x>
-       <y>0</y>
-       <width>711</width>
-       <height>801</height>
-      </rect>
-     </property>
+    <property name="currentIndex">
+     <number>0</number>
+    </property>
+    <widget class="QWidget" name="cropTab">
+     <attribute name="title">
+      <string>裁剪</string>
+     </attribute>
      <widget class="QFrame" name="imgFrame">
       <property name="geometry">
        <rect>
         <x>0</x>
-        <y>10</y>
+        <y>0</y>
         <width>701</width>
-        <height>781</height>
+        <height>771</height>
        </rect>
       </property>
       <property name="styleSheet">
@@ -121,23 +119,13 @@
        <enum>QFrame::Raised</enum>
       </property>
      </widget>
-    </widget>
-    <widget class="QWidget" name="widget_4" native="true">
-     <property name="geometry">
-      <rect>
-       <x>710</x>
-       <y>0</y>
-       <width>211</width>
-       <height>801</height>
-      </rect>
-     </property>
      <widget class="QFrame" name="controlFrame">
       <property name="geometry">
        <rect>
-        <x>0</x>
-        <y>10</y>
+        <x>710</x>
+        <y>0</y>
         <width>201</width>
-        <height>781</height>
+        <height>771</height>
        </rect>
       </property>
       <property name="styleSheet">
@@ -324,7 +312,7 @@
          <x>10</x>
          <y>230</y>
          <width>181</width>
-         <height>541</height>
+         <height>531</height>
         </rect>
        </property>
        <property name="title">
@@ -386,7 +374,7 @@
         <property name="geometry">
          <rect>
           <x>10</x>
-          <y>480</y>
+          <y>470</y>
           <width>161</width>
           <height>41</height>
          </rect>
@@ -397,6 +385,11 @@
        </widget>
       </widget>
      </widget>
+    </widget>
+    <widget class="QWidget" name="flawRemoveTab">
+     <attribute name="title">
+      <string>瑕疵去除</string>
+     </attribute>
     </widget>
    </widget>
   </widget>
