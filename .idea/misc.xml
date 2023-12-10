@@ -3,5 +3,5 @@
   <component name="Black">
     <option name="sdkName" value="Python 3.7 (pyUESTC)" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.7 (pyUESTC)" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.7 (pyDK)" project-jdk-type="Python SDK" />
 </project>
