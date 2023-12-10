@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 from utils.flaw_removal import *
 
+img = cv2.imread('./dataset/Kaggle/archive/mask.jfif')
 
 img_url = upload_img('./dataset/Kaggle/archive/69_2.jpg')
 print(img_url)

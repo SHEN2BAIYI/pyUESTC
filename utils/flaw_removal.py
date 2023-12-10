@@ -3,6 +3,7 @@ import time
 import base64
 
 import execjs
+import numpy as np
 import requests
 
 from urllib.parse import urlparse
@@ -123,12 +124,8 @@ def download_img(url, path=None):
     response = requests.get(url)
 
     if response.status_code == 200:
-        print(response.status_code)
         # 从响应中获取图片的二进制数据
         image_data = response.content
-
-        # 转换编码格式
-        image_data = utf2latin(image_data)
 
         # 使用 PIL 库打开图片文件
         image = Image.open(BytesIO(image_data))
@@ -136,6 +133,13 @@ def download_img(url, path=None):
         # 可选：显示图片
         image.show()
 
+        # 可选：保存图片
+        if path:
+            image.save(path)
+
+        return None
+
+    return download_img(url, path)
 
 """ 瑕疵消除 """
 def flaw_removal(img_url, mask_url, width=560, height=360):
@@ -166,6 +170,42 @@ def flaw_removal(img_url, mask_url, width=560, height=360):
     # 发送请求
     response = requests.post('https://appsrv.passfab.com/app/v2/photo/remove-watermark', headers=headers, data=data)
     return response
+
+
+""" 制作 mask """
+def make_mask(mask, value=(255, 87, 106)):
+    new_mask = np.zeros((mask.shape[0], mask.shape[1], 3), dtype=np.uint8)
+    new_mask[mask == 255] = value
+    return new_mask
+
+
+""" 完成瑕疵消除 """
+def finish_removal(img_path, mask_path, width=560, height=360, save_path=None):
+    # 完成图片上传
+    img_url = upload_img(img_path)
+    print(img_url)
+    time.sleep(1)
+    mask_url = upload_img(mask_path)
+    print(mask_url)
+    time.sleep(1)
+
+    response = flaw_removal(img_url, mask_url, width, height)
+
+    if response.status_code == 200:
+        result_url = json.loads(response.text)['data']['response_file'][0]
+        download_img(result_url, save_path)
+
+        return None
+
+    return finish_removal(img_path, mask_path, width, height)
+
+
+
+
+
+
+
+
 
 
 if __name__ == '__main__':

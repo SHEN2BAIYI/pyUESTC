@@ -1,3 +1,8 @@
+"""
+    Crop 区域的记录采用比例的形式进行记录，即:
+        crop_frame = [x1, y1, x2, y2]
+"""
+
 from utils.ui.func import *
 from ui.basic import CropperWindow
 
@@ -42,7 +47,6 @@ class ImageCropper(QWidget, CropperWindow):
 
         """ 控制界面 Frame """
         self.cwd = os.getcwd()
-        self.store_list = []
 
         self.__init_bind_event()
 
@@ -188,26 +192,29 @@ class ImageCropper(QWidget, CropperWindow):
                 if self.crop_exits_flag:
                     self.crop_frame = any2ltwh(self.crop_frame)
 
+                crop_frame = ratio2real(self.crop_frame, self.img_frame)
                 # 限制在图像框内
-                self.crop_frame[0] = limit_num_in_range(self.crop_frame[0], self.img_frame[0], self.img_frame[0] + self.img_frame[2])
-                self.crop_frame[1] = limit_num_in_range(self.crop_frame[1], self.img_frame[1], self.img_frame[1] + self.img_frame[3])
-                self.crop_frame[2] = limit_num_in_range(self.crop_frame[2], self.img_frame[0], self.img_frame[0] + self.img_frame[2])
-                self.crop_frame[3] = limit_num_in_range(self.crop_frame[3], self.img_frame[1], self.img_frame[1] + self.img_frame[3])
+                crop_frame[0] = limit_num_in_range(crop_frame[0], self.img_frame[0], self.img_frame[0] + self.img_frame[2])
+                crop_frame[1] = limit_num_in_range(crop_frame[1], self.img_frame[1], self.img_frame[1] + self.img_frame[3])
+                crop_frame[2] = limit_num_in_range(crop_frame[2], self.img_frame[0], self.img_frame[0] + self.img_frame[2])
+                crop_frame[3] = limit_num_in_range(crop_frame[3], self.img_frame[1], self.img_frame[1] + self.img_frame[3])
 
                 painter.setPen(QPen(QColor(255, 0, 0), 2))
-                painter.drawLine(self.crop_frame[0] + bias_x, self.crop_frame[1] + bias_y,
-                                 self.crop_frame[0] + bias_x, self.crop_frame[3] + bias_y)
-                painter.drawLine(self.crop_frame[0] + bias_x, self.crop_frame[1] + bias_y,
-                                 self.crop_frame[2] + bias_x, self.crop_frame[1] + bias_y)
-                painter.drawLine(self.crop_frame[2] + bias_x, self.crop_frame[3] + bias_y,
-                                 self.crop_frame[2] + bias_x, self.crop_frame[1] + bias_y)
-                painter.drawLine(self.crop_frame[2] + bias_x, self.crop_frame[3] + bias_y,
-                                 self.crop_frame[0] + bias_x, self.crop_frame[3] + bias_y)
+                painter.drawLine(crop_frame[0] + bias_x, crop_frame[1] + bias_y,
+                                 crop_frame[0] + bias_x, crop_frame[3] + bias_y)
+                painter.drawLine(crop_frame[0] + bias_x, crop_frame[1] + bias_y,
+                                 crop_frame[2] + bias_x, crop_frame[1] + bias_y)
+                painter.drawLine(crop_frame[2] + bias_x, crop_frame[3] + bias_y,
+                                 crop_frame[2] + bias_x, crop_frame[1] + bias_y)
+                painter.drawLine(crop_frame[2] + bias_x, crop_frame[3] + bias_y,
+                                 crop_frame[0] + bias_x, crop_frame[3] + bias_y)
 
     """ 鼠标点击事件 """
     def mousePressEvent(self, a0):
         x = a0.pos().x()
         y = a0.pos().y()
+        x_ratio = (x - self.img_frame[0]) / self.img_frame[2]
+        y_ratio = (y - self.img_frame[1]) / self.img_frame[3]
 
         # 中键按下
         if a0.button() == Qt.MidButton:
@@ -228,12 +235,14 @@ class ImageCropper(QWidget, CropperWindow):
                 if not self.crop_exits_flag:
                     self.crop_click_flag = True
 
-                    self.crop_frame = [x, y, x + 1, y + 1]
+                    self.crop_frame = [
+                        x_ratio, y_ratio, x_ratio, y_ratio
+                    ]
 
                 else:
                     # 有 crop 区域，判断点是否在 crop 框中
                     # 在 crop 框中，本次目标在于移动 crop 框或改变 crop 框大小
-                    if is_in_frame(x, y,
+                    if is_in_frame(x_ratio, y_ratio,
                                    min(self.crop_frame[0], self.crop_frame[2]),
                                    min(self.crop_frame[1], self.crop_frame[3]),
                                    abs(self.crop_frame[2] - self.crop_frame[0]),
@@ -241,32 +250,31 @@ class ImageCropper(QWidget, CropperWindow):
                         self.crop_click_flag = True
 
                         # 提取 crop 点击点
-                        self.crop_hold_point[0] = x
-                        self.crop_hold_point[1] = y
+                        self.crop_hold_point[0] = x_ratio
+                        self.crop_hold_point[1] = y_ratio
 
                         # 判断点击点在 crop 框的哪个位置
+                        # 从 ratio 变更为真实坐标
+                        crop_frame = ratio2real(self.crop_frame, self.img_frame)
                         self.crop_change_flag = point_in_frame(x, y,
-                                                               self.crop_frame[0], self.crop_frame[1],
-                                                               self.crop_frame[2] - self.crop_frame[0],
-                                                               self.crop_frame[3] - self.crop_frame[1])
+                                                               crop_frame[0], crop_frame[1],
+                                                               crop_frame[2] - crop_frame[0],
+                                                               crop_frame[3] - crop_frame[1])
 
     """ 鼠标移动事件 """
     def mouseMoveEvent(self, a0):
         x = a0.pos().x()
         y = a0.pos().y()
+        if not np.array(self.img_frame).any():
+            return
+        x_ratio = (x - self.img_frame[0]) / self.img_frame[2]
+        y_ratio = (y - self.img_frame[1]) / self.img_frame[3]
 
         # 中键按下移动
         if a0.buttons() & Qt.MidButton and self.img_click_flag:
             # 更新图像框的左上角坐标
             self.img_frame[0] += x - self.img_hold_point[0]
             self.img_frame[1] += y - self.img_hold_point[1]
-
-            # 更新剪切框坐标
-            if self.crop_exits_flag:
-                self.crop_frame[0] += x - self.img_hold_point[0]
-                self.crop_frame[1] += y - self.img_hold_point[1]
-                self.crop_frame[2] += x - self.img_hold_point[0]
-                self.crop_frame[3] += y - self.img_hold_point[1]
 
             # 更新图像持有点
             self.img_hold_point[0] = x
@@ -279,32 +287,36 @@ class ImageCropper(QWidget, CropperWindow):
 
                 # 点不在图像框中
                 self.crop_frame[2] = limit_num_in_range(x, self.img_frame[0], self.img_frame[0] + self.img_frame[2])
+                self.crop_frame[2] = (self.crop_frame[2] - self.img_frame[0]) / self.img_frame[2]
                 self.crop_frame[3] = limit_num_in_range(y, self.img_frame[1], self.img_frame[1] + self.img_frame[3])
+                self.crop_frame[3] = (self.crop_frame[3] - self.img_frame[1]) / self.img_frame[3]
 
             # 存在裁剪框, 目标在于移动裁剪框或改变裁剪框大小
             elif self.crop_exits_flag and self.crop_click_flag:
                 # 更新裁剪框坐标
                 for index, flag in enumerate(self.crop_change_flag):
                     if flag and index % 2 == 0:
-                        self.crop_frame[index] += x - self.crop_hold_point[0]
+                        self.crop_frame[index] += x_ratio - self.crop_hold_point[0]
                     if flag and index % 2 == 1:
-                        self.crop_frame[index] += y - self.crop_hold_point[1]
+                        self.crop_frame[index] += y_ratio - self.crop_hold_point[1]
 
                 # 更新裁剪框持有点
-                self.crop_hold_point[0] = x
-                self.crop_hold_point[1] = y
+                self.crop_hold_point[0] = x_ratio
+                self.crop_hold_point[1] = y_ratio
 
         # 平常移动，设置鼠标样式
         if self.crop_exits_flag:
-            if is_in_frame(x, y,
+            if is_in_frame(x_ratio, y_ratio,
                            self.crop_frame[0], self.crop_frame[1],
                            self.crop_frame[2] - self.crop_frame[0],
                            self.crop_frame[3] - self.crop_frame[1]):
 
+                crop_frame = ratio2real(self.crop_frame, self.img_frame)
+
                 flags = point_in_frame(x, y,
-                                       self.crop_frame[0], self.crop_frame[1],
-                                       self.crop_frame[2] - self.crop_frame[0],
-                                       self.crop_frame[3] - self.crop_frame[1])
+                                       crop_frame[0], crop_frame[1],
+                                       crop_frame[2] - crop_frame[0],
+                                       crop_frame[3] - crop_frame[1])
 
                 # 设置中间鼠标样式
                 if flags[0] and flags[1] and flags[2] and flags[3]:
@@ -382,13 +394,6 @@ class ImageCropper(QWidget, CropperWindow):
             self.img_frame[1] = round(y - (y - self.img_frame[1]) * scale)
             self.img_frame[2] = round(self.img_frame[2] * scale)
             self.img_frame[3] = round(self.img_frame[3] * scale)
-
-            # 更新剪切框坐标
-            if self.crop_exits_flag:
-                self.crop_frame[0] = round(x - (x - self.crop_frame[0]) * scale)
-                self.crop_frame[1] = round(y - (y - self.crop_frame[1]) * scale)
-                self.crop_frame[2] = round(x - (x - self.crop_frame[2]) * scale)
-                self.crop_frame[3] = round(y - (y - self.crop_frame[3]) * scale)
 
         self.update()
         a0.accept()

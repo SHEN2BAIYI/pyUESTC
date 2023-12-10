@@ -42,12 +42,6 @@ class Ui_MainWindow(object):
         self.tabWidget.addTab(self.cropTab, "")
         self.flawRemoveTab = QtWidgets.QWidget()
         self.flawRemoveTab.setObjectName("flawRemoveTab")
-        self.imgFrame_2 = QtWidgets.QFrame(self.flawRemoveTab)
-        self.imgFrame_2.setGeometry(QtCore.QRect(0, 0, 701, 771))
-        self.imgFrame_2.setStyleSheet("#imgFrame_2{border:1px solid rgb(123, 233, 255)}")
-        self.imgFrame_2.setFrameShape(QtWidgets.QFrame.StyledPanel)
-        self.imgFrame_2.setFrameShadow(QtWidgets.QFrame.Raised)
-        self.imgFrame_2.setObjectName("imgFrame_2")
         self.tabWidget.addTab(self.flawRemoveTab, "")
         MainWindow.setCentralWidget(self.centralwidget)
 

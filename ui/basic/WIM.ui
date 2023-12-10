@@ -105,25 +105,6 @@
      <attribute name="title">
       <string>瑕疵去除</string>
      </attribute>
-     <widget class="QFrame" name="imgFrame_2">
-      <property name="geometry">
-       <rect>
-        <x>0</x>
-        <y>0</y>
-        <width>701</width>
-        <height>771</height>
-       </rect>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">#imgFrame_2{border:1px solid rgb(123, 233, 255)}</string>
-      </property>
-      <property name="frameShape">
-       <enum>QFrame::StyledPanel</enum>
-      </property>
-      <property name="frameShadow">
-       <enum>QFrame::Raised</enum>
-      </property>
-     </widget>
     </widget>
    </widget>
   </widget>

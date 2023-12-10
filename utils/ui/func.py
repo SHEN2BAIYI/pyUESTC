@@ -75,4 +75,12 @@ def point_in_frame(point_x, point_y, frame_x, frame_y, frame_width, frame_height
     return [True, True, True, True]
 
 
+""" 比例转换为真实坐标 """
+def ratio2real(ratio_frame, real_frame):
+    new_frame = []
 
+    for i in range(int(len(ratio_frame) / 2)):
+        new_frame.append(ratio_frame[i * 2] * real_frame[2] + real_frame[0])
+        new_frame.append(ratio_frame[i * 2 + 1] * real_frame[3] + real_frame[1])
+
+    return new_frame
