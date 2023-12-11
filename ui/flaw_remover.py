@@ -60,6 +60,8 @@ class FlawRemover(QWidget, FlawRemoverWindow):
         self.storeLineEdit.mouseDoubleClickEvent = self.__choose_file
         self.storeButton.clicked.connect(self.__save_mask)
 
+        self.storeListView.doubleClicked.connect(self.__show_img)
+
     """ 初始化保存列表 """
     def __init_store_list(self):
         if not self.storeLineEdit.text():
@@ -171,6 +173,18 @@ class FlawRemover(QWidget, FlawRemoverWindow):
         # 设置保存列表
         self.__init_store_list()
 
+    """ 展示图像 """
+    def __show_img(self):
+        # 获取文件名
+        file_name = self.storeListView.selectionModel().selectedIndexes()[0].data()
+
+        # 获取文件全路径
+        file_path = os.path.join(self.storeLineEdit.text(), file_name)
+
+        # 设置图像
+        img = cv2.imread(file_path)
+        cv2.imshow('img', img)
+
     ########################
     #       监听函数        #
     ########################
@@ -183,10 +197,10 @@ class FlawRemover(QWidget, FlawRemoverWindow):
 
             # 画图
             painter.drawEllipse(
-                point_x + bias_x - self.img_frame[2] / my_point[3] * my_point[2] / 2,
-                point_y + bias_y - self.img_frame[3] / my_point[4] * my_point[2] / 2,
-                self.img_frame[2] / my_point[3] * my_point[2],
-                self.img_frame[3] / my_point[4] * my_point[2]
+                int(point_x + bias_x - self.img_frame[2] / my_point[3] * my_point[2] / 2),
+                int(point_y + bias_y - self.img_frame[3] / my_point[4] * my_point[2] / 2),
+                int(self.img_frame[2] / my_point[3] * my_point[2]),
+                int(self.img_frame[3] / my_point[4] * my_point[2])
             )
 
         self.imgLabel.pixmap().fill(QColor(249, 249, 249))

@@ -4,6 +4,7 @@
 """
 
 from utils.ui.func import *
+from utils.use_xml import *
 from ui.basic import CropperWindow
 
 from PyQt5.QtWidgets import *
@@ -13,6 +14,8 @@ from PyQt5.QtCore import *
 import os
 import sys
 import numpy as np
+import xml.etree.ElementTree as ET
+
 
 class ImageCropper(QWidget, CropperWindow):
     def __init__(self):
@@ -52,21 +55,14 @@ class ImageCropper(QWidget, CropperWindow):
 
     """ 初始化主页面绑定事件 """
     def __init_bind_event(self):
-        # 绑定微调按钮事件
-        self.topUpButton.clicked.connect(lambda: self.__adjust_crop(1, -1))
-        self.topDownButton.clicked.connect(lambda: self.__adjust_crop(1, 1))
-        self.leftUpButton.clicked.connect(lambda: self.__adjust_crop(0, -1))
-        self.leftDownButton.clicked.connect(lambda: self.__adjust_crop(0, 1))
-        self.rightUpButton.clicked.connect(lambda: self.__adjust_crop(2, -1))
-        self.rightDownButton.clicked.connect(lambda: self.__adjust_crop(2, 1))
-        self.bottomUpButton.clicked.connect(lambda: self.__adjust_crop(3, -1))
-        self.bottomDownButton.clicked.connect(lambda: self.__adjust_crop(3, 1))
-
         # 绑定文件夹选择事件
         self.storeLineEdit.mouseDoubleClickEvent = self.__choose_file
 
         # 绑定保存按钮事件
         self.storeButton.clicked.connect(self.__save_crop)
+
+        # 绑定图像显示
+        self.storeListView.doubleClicked.connect(self.__show_img)
 
     """ 初始化保存列表 """
     def __init_store_list(self):
@@ -116,20 +112,21 @@ class ImageCropper(QWidget, CropperWindow):
             return
 
         # 将 crop 区域转换到原图像中
-        img_frame = self.img_frame.copy()
         crop_frame = self.crop_frame.copy()
         # 加载原图像
         img = cv2.imread(self.img_path)
 
-        # 计算比例
-        x1 = round((crop_frame[0] - img_frame[0]) * img.shape[1] / img_frame[2])
-        y1 = round((crop_frame[1] - img_frame[1]) * img.shape[0] / img_frame[3])
-
-        x2 = round((crop_frame[2] - img_frame[0]) * img.shape[1] / img_frame[2])
-        y2 = round((crop_frame[3] - img_frame[1]) * img.shape[0] / img_frame[3])
+        # 计算位置
+        crop_frame = ratio2real(crop_frame, [0, 0, img.shape[1], img.shape[0]])
 
         # 保存图像
-        img = img[y1:y2, x1:x2]
+        img = img[
+            max(0, int(crop_frame[1])): min(img.shape[0], int(crop_frame[3])),
+            max(0, int(crop_frame[0])): min(img.shape[1], int(crop_frame[2])),
+        ]
+        lt_coords = (max(0, int(crop_frame[0])), max(0, int(crop_frame[1])))
+        rb_coords = (min(img.shape[1], int(crop_frame[2])), min(img.shape[0], int(crop_frame[3])))
+
         # 拆分图像路径
         _, file_name = os.path.split(self.img_path)
         file_path = self.storeLineEdit.text()
@@ -140,6 +137,11 @@ class ImageCropper(QWidget, CropperWindow):
         file_path = os.path.join(file_path, file_name)
 
         cv2.imwrite(file_path, img)
+
+        # 保存 xml 文件
+        if self.checkBox.isChecked():
+            self.__save_xml(file_path.replace('jpg', 'xml').replace('png', 'xml'), lt_coords, rb_coords)
+
         # 显示保存记录
         self.__init_store_list()
         QMessageBox.information(self, '提示', '保存成功！')
@@ -163,6 +165,37 @@ class ImageCropper(QWidget, CropperWindow):
 
         self.crop_frame = crop
         self.update()
+
+    """ 展示图像 """
+    def __show_img(self):
+        # 获取文件名
+        file_name = self.storeListView.selectionModel().selectedIndexes()[0].data()
+
+        # 获取文件全路径
+        file_path = os.path.join(self.storeLineEdit.text(), file_name)
+
+        # 设置图像
+        img = cv2.imread(file_path)
+        cv2.imshow('img', img)
+
+    """ 保存 xml 文件"""
+    @staticmethod
+    def __save_xml(path, lr_coords, rb_coords):
+        root = ET.Element('Root')
+        tree = ET.ElementTree(root)
+
+        crop = ET.Element('crop')
+        root.append(crop)
+        coords1 = ET.Element('lt_coords')
+        coords1.text = str(lr_coords)
+        crop.append(coords1)
+        coords2 = ET.Element('rb_coords')
+        coords2.text = str(rb_coords)
+        crop.append(coords2)
+
+        indent(root)
+        tree.write(path, encoding='utf-8', xml_declaration=True)
+
 
     ########################
     #      窗口监听事件      #
@@ -194,10 +227,10 @@ class ImageCropper(QWidget, CropperWindow):
 
                 crop_frame = ratio2real(self.crop_frame, self.img_frame)
                 # 限制在图像框内
-                crop_frame[0] = limit_num_in_range(crop_frame[0], self.img_frame[0], self.img_frame[0] + self.img_frame[2])
-                crop_frame[1] = limit_num_in_range(crop_frame[1], self.img_frame[1], self.img_frame[1] + self.img_frame[3])
-                crop_frame[2] = limit_num_in_range(crop_frame[2], self.img_frame[0], self.img_frame[0] + self.img_frame[2])
-                crop_frame[3] = limit_num_in_range(crop_frame[3], self.img_frame[1], self.img_frame[1] + self.img_frame[3])
+                crop_frame[0] = int(limit_num_in_range(crop_frame[0], self.img_frame[0], self.img_frame[0] + self.img_frame[2]))
+                crop_frame[1] = int(limit_num_in_range(crop_frame[1], self.img_frame[1], self.img_frame[1] + self.img_frame[3]))
+                crop_frame[2] = int(limit_num_in_range(crop_frame[2], self.img_frame[0], self.img_frame[0] + self.img_frame[2]))
+                crop_frame[3] = int(limit_num_in_range(crop_frame[3], self.img_frame[1], self.img_frame[1] + self.img_frame[3]))
 
                 painter.setPen(QPen(QColor(255, 0, 0), 2))
                 painter.drawLine(crop_frame[0] + bias_x, crop_frame[1] + bias_y,
