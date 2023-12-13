@@ -11,7 +11,7 @@ from io import BytesIO
 from PIL import Image
 
 """ JS 文件编译并导入 """
-with open('./utils/flaw_removal.js', 'r', encoding='utf-8') as f:
+with open('../utils/flaw_removal.js', 'r', encoding='utf-8') as f:
     js_code = f.read()
 ctx = execjs.compile(js_code)
 

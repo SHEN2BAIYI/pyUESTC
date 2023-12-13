@@ -5,14 +5,13 @@
 
 from utils.ui.func import *
 from utils.use_xml import *
-from ui.basic import CropperWindow
+from ImageTool.ui.basic import CropperWindow
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
 import os
-import sys
 import numpy as np
 import xml.etree.ElementTree as ET
 

@@ -1,19 +1,20 @@
-import time
-import requests
-import random,string
-import cv2
-import numpy as np
-from utils.flaw_removal import *
+import os
 
-img = cv2.imread('./dataset/Kaggle/archive/mask.jfif')
 
-img_url = upload_img('./dataset/Kaggle/archive/69_2.jpg')
-print(img_url)
-time.sleep(1)
-mask_url = upload_img('./dataset/Kaggle/archive/mask.jfif')
-print(mask_url)
-time.sleep(1)
+# 遍历文件夹
+for file in os.listdir('./dataset/public/origin_flawR'):
+    # 获取文件名
+    file_name = os.path.splitext(file)[0]
+    # 获取文件后缀
+    file_type = os.path.splitext(file)[1]
+    # 判断文件后缀是否为.xml
+    if file_type == '.xml':
+        # 将文件移动到指定文件夹
+        os.rename('./dataset/public/origin_flawR/{}'.format(file),
+                  './dataset/public/origin_flawR/ori_annot/{}'.format(file))
 
-response = flaw_removal(img_url, mask_url)
-res = json.loads(response.text)['data']['response_file'][0]
-print(1)
+    if file_type == '.jpg':
+        os.rename('./dataset/public/origin_flawR/{}'.format(file),
+                  './dataset/public/origin_flawR/image/{}'.format(file))
+
+

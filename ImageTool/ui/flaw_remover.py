@@ -3,17 +3,11 @@
         mask_point = [中心点x占比，中心点y占比，直径，当前图像width，当前图像height]
 """
 
-
-import numpy as np
-from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
-from PyQt5.QtCore import *
 import os
 import math
-import cv2
-import sys
 
-from ui.basic import FlawRemoverWindow
+from ImageTool.ui.basic import FlawRemoverWindow
 from utils.ui.func import *
 from utils.flaw_removal import *
 
