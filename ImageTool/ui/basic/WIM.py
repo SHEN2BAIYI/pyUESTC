@@ -43,10 +43,13 @@ class Ui_MainWindow(object):
         self.flawRemoveTab = QtWidgets.QWidget()
         self.flawRemoveTab.setObjectName("flawRemoveTab")
         self.tabWidget.addTab(self.flawRemoveTab, "")
+        self.imBalanceTab = QtWidgets.QWidget()
+        self.imBalanceTab.setObjectName("imBalanceTab")
+        self.tabWidget.addTab(self.imBalanceTab, "")
         MainWindow.setCentralWidget(self.centralwidget)
 
         self.retranslateUi(MainWindow)
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(2)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
@@ -55,3 +58,4 @@ class Ui_MainWindow(object):
         self.targetLabel.setText(_translate("MainWindow", "目标文件夹："))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.cropTab), _translate("MainWindow", "裁剪"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.flawRemoveTab), _translate("MainWindow", "瑕疵去除"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.imBalanceTab), _translate("MainWindow", "添加不均匀性"))

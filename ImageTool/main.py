@@ -4,6 +4,7 @@ from PyQt5.QtCore import *
 from ui.image_cropper import ImageCropper
 from ui.flaw_remover import FlawRemover
 from ui.basic import MainWindow
+from ui.image_imbalancer import ImBalancer
 
 import os
 import sys
@@ -29,6 +30,12 @@ class WIM(QMainWindow, MainWindow):
         vbox.addWidget(self.flaw_remover)
         self.flawRemoveTab.setLayout(vbox)
 
+        # 添加图像不均匀页面部件
+        self.imbalancer = ImBalancer()
+        vbox = QStackedLayout()
+        vbox.addWidget(self.imbalancer)
+        self.imBalanceTab.setLayout(vbox)
+
         # 初始化
         self.__init_bind_event()
 
@@ -48,11 +55,12 @@ class WIM(QMainWindow, MainWindow):
 
         # 选择文件并传递给 line_edit
         if file_name:
+            self.cwd = file_name
             self.targetLineEdit.setText(file_name)
 
             # 读取文件夹下的文件
             files = os.listdir(file_name)
-            files = [x for x in files if x.endswith('.jpg') or x.endswith('.png')]
+            files = [x for x in files if x.endswith('.jpg') or x.endswith('.png') or x.endswith('.bmp')]
             list_model = QStringListModel()
             list_model.setStringList(files)
 
@@ -74,6 +82,9 @@ class WIM(QMainWindow, MainWindow):
         elif self.tabWidget.currentIndex() == 0:
             self.cropper.reset()
             self.cropper.set_img(file_path)
+        elif self.tabWidget.currentIndex() == 2:
+            self.imbalancer.reset()
+            self.imbalancer.set_img(file_path)
 
 
 if __name__ == '__main__':

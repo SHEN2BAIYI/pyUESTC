@@ -94,7 +94,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>0</number>
+     <number>2</number>
     </property>
     <widget class="QWidget" name="cropTab">
      <attribute name="title">
@@ -104,6 +104,11 @@
     <widget class="QWidget" name="flawRemoveTab">
      <attribute name="title">
       <string>瑕疵去除</string>
+     </attribute>
+    </widget>
+    <widget class="QWidget" name="imBalanceTab">
+     <attribute name="title">
+      <string>添加不均匀性</string>
      </attribute>
     </widget>
    </widget>
